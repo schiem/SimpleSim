@@ -9,13 +9,12 @@
 import random
 
 class Animal:
-    def __init__(self, speed, size, death_age, ID, diet_type, animal_type, cannibal, x, y):
+    def __init__(self, speed, size, death_age, ID, diet_type, cannibal, x, y):
         self.speed = speed
         self.size = size
         self.death_age = death_age
         self.ID = ID
         self.diet_type = diet_type
-        self.animal_type = animal_type
         self.cannibal = cannibal
         self.x = x
         self.y = y
@@ -28,7 +27,7 @@ class Animal:
         #for now just size, but later more?
         self.energy_supplied = size
         self.age = 0
-        #self.metabolism = ?
+        self.metabolism = (int) speed/size 
         self.gender = random.randint(0,1)
 
     def act(self):
