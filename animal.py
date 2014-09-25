@@ -3,10 +3,11 @@
 #
 # Michael Yoder
 # Schiem
-# v 0.1
+# v 0.6
 #####################################################################
 
 import random
+from plant import Plant
 
 class States:
     FLEE = 1
@@ -64,8 +65,8 @@ class Animal:
         self.world = world
 
         #when energy reaches zero, you die
-        self.energy = 20 
-        self.max_energy = 20
+        self.energy = 100 
+        self.max_energy = 100
 
         #how much energy do we give when eaten?
         #for now just size, but later more?
@@ -79,42 +80,47 @@ class Animal:
         self.refractory = 0
         self.state = States.WANDER
         self.target = None
+        self.timer = 0
+
     '''
     The core of the animal, the action.  Actions can be one of 4 things
     at the moment, which are (in order of priority): fleeing, eating,
     breeding, and meandering.
     '''
-    def act(self):
+    def act(self, delta_ms):
         #start by setting the state
-        for obj in self.world.objects_in_range(self.x, self.y, self.genes['sight']):
-            if(obj.can_eat(self)):
-                self.state = States.FLEE
-                #if we don't have another target, this should be our target
-                self.target = self.closer_target(obj)
-            elif(self.can_eat(obj) and self.energy < (0.9 * self.max_energy)):
-                self.state = States.EAT
-                self.target = self.closer_target(obj)
-            elif(self.can_breed(obj) and self.ready_to_breed() and obj.ready_to_breed()):
-                self.state = States.BREED
-                self.target = self.closer_target(obj)
-            else:
-                self.state = States.WANDER
+        self.timer += delta_ms
+        while(self.timer > ((1/self.genes['speed']) * 1000)):
+            self.timer -= delta_ms
+            for obj in self.world.objects_in_range(self.x, self.y, self.genes['sight']):
+                if(obj.can_eat(self)):
+                    self.state = States.FLEE
+                    #if we don't have another target, this should be our target
+                    self.target = self.closer_target(obj)
+                elif(self.can_eat(obj) and self.energy < (0.9 * self.max_energy)):
+                    self.state = States.EAT
+                    self.target = self.closer_target(obj)
+                elif(self.can_breed(obj) and self.ready_to_breed() and obj.ready_to_breed()):
+                    self.state = States.BREED
+                    self.target = self.closer_target(obj)
+                else:
+                    self.state = States.WANDER
 
-        if(self.state == States.FLEE):
-            self.flee(self.target.x, self.target.y)
-        elif(self.state == States.EAT):
-            if(self.next_to(self.target.x, self.target.y)):
-                self.eat(self.target)
+            if(self.state == States.FLEE):
+                self.flee(self.target.x, self.target.y)
+            elif(self.state == States.EAT):
+                if(self.next_to(self.target.x, self.target.y)):
+                    self.eat(self.target)
+                else:
+                    self.move_towards(self.target.x, self.target.y)
+            elif(self.state == States.BREED):
+                if(self.next_to(self.target.x, self.target.y)):
+                    self.breed(self.target)
+                else:
+                    self.move_towards(self.target.x, self.target.y)
             else:
-                self.move_towards(self.target.x, self.target.y)
-        elif(self.state == States.BREED):
-            if(self.next_to(self.target.x, self.target.y)):
-                self.breed(self.target)
-            else:
-                self.move_towards(self.target.x, self.target.y)
-        else:
-            self.move(self.x + random.randint(-1, 1), self.y + random.randint(-1, 1))
-        
+                self.move(self.x + random.randint(-1, 1), self.y + random.randint(-1, 1))
+            
         self.energy -= self.metabolism
         self.age += 1
         if(self.refractory > 0):
@@ -197,7 +203,7 @@ class Animal:
         offspring_y = self.y + random.randint(-1, 1)
         
         #check to make sure the offspring isn't off the map
-        if not validate_move(offspring_x, offspring_y):
+        if not self.validate_move(offspring_x, offspring_y):
             offspring_x = self.x
             offspring_y = self.y
         
@@ -213,12 +219,12 @@ class Animal:
             self.world,
             [self, animal])
         offspring.mutate_organism()
-        if(world.get_animal_id(offspring) is None):
-            offspring.ID = world.generate_new_id(Animal)
-        world.add_objects(offspring)
+        if(self.world.get_animal_id(offspring) is None):
+            offspring.ID = self.world.generate_new_id(Animal)
+        self.world.add_object(offspring)
 
     '''
-    Randomly selects which parent's genes get used.
+    Randomly selects which parent's genes get used from the genes variable.
     '''
     def pick_alleles(self, animal):
         genes = {}
@@ -227,25 +233,27 @@ class Animal:
         return genes
 
     '''
-    Causes slight changes to the organisms genes.
+    Causes slight changes to the organisms genes.  All of the changeable genes are held
+    in self.genes, and this is iterated through and altered minorly.  All are ints, with
+    the current lone exception of diet_type, which is a list of types.
     '''
     def mutate_organism(self):
         for key in self.genes:
             if(key is not "diet_type"): 
-                self.genes[key] = mutate_gene(self.genes[key])
+                self.genes[key] = self.mutate_gene(self.genes[key])
             else:
-                diets = world.type_constants() 
+                diets = [Plant, Animal] 
                 diets = list(set(diets) - set(self.genes[key]))
                 if(len(diets) != 0):
                     #just in case I ever add more diets...
                     self.genes[key].append(random.randrange(len(diets)))
 
     '''
-    Changes a specific gene.
+    Changes a specific gene. Assumes that the gene is an int.
     '''
     def mutate_gene(self, gene):
         a = gene
-        if(random.randint(10) == 0):
+        if(random.randrange(10) == 0):
             a = a + random.randint(-1, 1)
         return a
 

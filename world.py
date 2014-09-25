@@ -10,9 +10,7 @@ import random
 import sys
 from animal import Animal
 from plant import Plant
-
-def type_constants():
-    return [Plant, Animal]
+from helper import type_constants
 
 class World:
     '''
@@ -39,7 +37,7 @@ class World:
         ID = self.generate_new_id(Animal)
         
         #future me, sorry about what I'm about to do
-        diets = type_constants() 
+        diets = [Plant, Animal] 
         diet_type = []
         for i in range(random.randint(1, len(diets))):
            diet_type.append(diets.pop(random.randrange(len(diets))))
@@ -53,9 +51,9 @@ class World:
             self.objects.append(Animal(speed, size, sight, death_age, ID, diet_type, cannibal, x, y, self, []))
 
     def get_animal_id(self, obj):
-        for animal in objects:
+        for animal in self.objects:
             if(type(animal) is Animal):
-                if(same_species(obj, animal)):
+                if(self.same_species(obj, animal)):
                     return animal.ID
         return None
     
@@ -68,22 +66,30 @@ class World:
     Parameter: animal2
         The second animal to compare.
     '''
-    def same_species(animal1, animal2):
+    def same_species(self, animal1, animal2):
         is_same = True
         for key in animal1.genes:
-            is_same = is_same and compare_stat(animal1.genes[key], animal2.genes[key])
+            is_same = is_same and self.compare_stat(animal1.genes[key], animal2.genes[key])
         return is_same
 
     '''
-    Compares two stats to see if they are within 20%.
+    Compares two stats to see if they are within 20%. Returns true
+    if they are within the acceptable range.
     Parameter: stat1
         First stat to compare.
     Parameter: stat2
         Second stat to compare.
     '''
-    def compare_stat(stat1, stat2):
+    def compare_stat(self, stat1, stat2):
         #is the difference more than 20%.  20% is too much
-        return abs((stat1-stat2)/((stat1 + stat2)/2)) > .2 
+        if(type(stat1) is int):
+            return abs((stat1-stat2)/((stat1 + stat2)/2)) < .2 
+        elif(type(stat1) is list):
+            return len(stat1) == len(stat2)
+        elif(type(stat1) is bool):
+            return stat1 and stat2
+        else:
+            return
     
     '''
     Finds the lowest ID for that type of object (Plant or Animal) that
@@ -141,19 +147,19 @@ class World:
     '''
     Steps through all of the objects in the world and has them act.
     '''
-    def run_objects(self):
+    def run_objects(self, delta_ms):
         for obj in self.objects:
             if(obj.is_dead):
                 self.objects.remove(obj)
             else:
-                obj.act()
+                obj.act(delta_ms)
    
     '''
     The main 'run' function.
     '''
-    def run_world(self):
+    def run_world(self, delta_ms):
         self.display_world()
-        self.run_objects()
+        self.run_objects(delta_ms)
    
     '''
     Returns the actual distance, not just for relative comparisons.
