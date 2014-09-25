@@ -72,6 +72,8 @@ class Animal:
         self.energy_supplied = size
         self.age = 0
         self.metabolism = int(speed/size)
+        if(self.metabolism == 0):
+            self.metabolism = 1
         self.gender = random.randint(0,1)
         self.is_dead = False
         self.refractory = 0
@@ -84,17 +86,17 @@ class Animal:
     '''
     def act(self):
         #start by setting the state
-        for obj in self.world.objects_in_range(self.x, self.y, self.sight):
+        for obj in self.world.objects_in_range(self.x, self.y, self.genes['sight']):
             if(obj.can_eat(self)):
                 self.state = States.FLEE
                 #if we don't have another target, this should be our target
-                self.target = closer_target(obj)
+                self.target = self.closer_target(obj)
             elif(self.can_eat(obj) and self.energy < (0.9 * self.max_energy)):
                 self.state = States.EAT
-                self.target = closer_target(obj)
+                self.target = self.closer_target(obj)
             elif(self.can_breed(obj) and self.ready_to_breed() and obj.ready_to_breed()):
                 self.state = States.BREED
-                self.target = closer_target(obj)
+                self.target = self.closer_target(obj)
             else:
                 self.state = States.WANDER
 
@@ -111,19 +113,27 @@ class Animal:
             else:
                 self.move_towards(self.target.x, self.target.y)
         else:
-            move(self.x + random.randint(-1, 1), self.y + random.randint(-1, 1))
-            
+            self.move(self.x + random.randint(-1, 1), self.y + random.randint(-1, 1))
+        
+        self.energy -= self.metabolism
+        self.age += 1
+        if(self.refractory > 0):
+            self.refractory -= 1
+        if(self.energy <= 0):
+            self.die()
+    
+    
     def next_to(self, x, y):
         next_x = abs(self.x - x) <= 1
         next_y = abs(self.y - y) <= 1
         return next_x and next_y
 
-    def closer_target(self, new_target):
+    def closer_target(self, obj):
         if(self.target is None):
             return obj
         else:
-            target_distance = self.world.get_distance(self.x, self.y, self.target.x, self.target.y)
-            new_distance = self.world.get_distance(self.x, self.y, obj.x, obj.y)
+            target_distance = self.world.get_cheap_distance(self.x, self.y, self.target.x, self.target.y)
+            new_distance = self.world.get_cheap_distance(self.x, self.y, obj.x, obj.y)
             if(new_distance<target_distance):
                 return obj
             else:
@@ -136,6 +146,7 @@ class Animal:
     '''
     def flee(self, x, y):
         #flee from a location
+        print("RUNNING")
         self.x = self.x + (self.x > x) - (self.x < x)
         self.y = self.y + (self.y > y) - (self.y < y)
 
@@ -145,10 +156,16 @@ class Animal:
     '''
     def eat(self, obj):
         #eat an object
-        if(can_eat(obj)):
-            obj.die()
-            energy = energy + obj.energy_supplied
-            correct_energy()
+        
+        print("EATING!")
+        '''
+        self.dump_stats()
+        print("")
+        obj.dump_stats()
+        '''
+        obj.die()
+        self.energy = self.energy + obj.energy_supplied
+        self.correct_energy()
 
     '''
     Locomote in the direction of a thing.
@@ -166,6 +183,7 @@ class Animal:
     both parents, as well as mutations.
     '''
     def breed(self, animal):
+        print("BREEDING")
         #breed with an animal
         #it takes two to tango, but both shouldn't produce offspring
         self.just_bred()
@@ -195,7 +213,7 @@ class Animal:
             self.world,
             [self, animal])
         offspring.mutate_organism()
-        if(world.get_id(offspring) is None):
+        if(world.get_animal_id(offspring) is None):
             offspring.ID = world.generate_new_id(Animal)
         world.add_objects(offspring)
 
@@ -240,13 +258,13 @@ class Animal:
         self.refractory = 10
 
         #and breeding takes quite a bit of energy...
-        self.energy = energy - max_energy/2
+        self.energy = self.energy - self.max_energy/2
 
     '''
     Checks if the animal just bred, and if it has the energy to breed again.
     '''
     def ready_to_breed(self):
-        return self.refractory == 0 and energy > max_energy/2
+        return self.refractory == 0 and self.energy > self.max_energy/2
 
     '''
     Will search for a specific object in sight. May be obsolete.
@@ -261,11 +279,11 @@ class Animal:
     cycles (it's costly!).
     '''
     def move(self, x, y):
-        if(validate_move(x, y)):
+        if(self.validate_move(x, y)):
             self.x = x
             self.y = y
             #it takes one metabolism tick to move
-            self.energy = energy - metabolism
+            self.energy = self.energy - self.metabolism
 
     '''
     Dies.
@@ -288,19 +306,20 @@ class Animal:
         #checks if a particular object can be eaten by this animal
 
         #is it the same type as us?  If so, is it okay to eat it?
-        cannibalize = self.ID != obj.ID or self.cannibal == True
+        cannibalize = self.ID != obj.ID or self.genes['cannibal'] == True
 
         #Do we eat this type of object?
-        dietary_restriction = type(obj) in self.diet_type 
+        dietary_restriction = type(obj) in self.genes['diet_type']
         
         #is it too big for us to eat?
-        size_restriction = self.size >= obj.size
+        size_restriction = self.genes['size'] >= obj.genes['size']
 
         #let's not eat our children or potential mates, but only if we're in the mating mood
         is_child = self in obj.parents
-        can_mate = can_breed(obj) and self.ready_to_breed() and animal.ready_to_breed()
+        can_mate = self.can_breed(obj) and self.ready_to_breed() and obj.ready_to_breed()
 
-        return (cannibalize and dietary_restriction and size_restriction and not is_child and not can_mate)
+        is_not_self = not obj is self
+        return (is_not_self and cannibalize and dietary_restriction and size_restriction and not is_child and not can_mate)
 
     '''
     Ensures that the energy cannot exceed the max energy.
@@ -312,4 +331,12 @@ class Animal:
     Returns whether or not a given set of coordinates is within the world.
     '''
     def validate_move(self, x, y):
-        return (x <= world.width and x>=0) and (y <=world.height and y>=0)
+        return (x <= self.world.width and x>=0) and (y <= self.world.height and y>=0)
+
+    def dump_stats(self):
+        for key in self.genes:
+            print(key + ": " + str(self.genes[key]))
+        print("Energy: " + str(self.energy))
+        print("Dead: " + str(self.is_dead))
+        print("Num Objects: " + str(len(self.world.objects)))
+        print("World: " + str(self.world))

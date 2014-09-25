@@ -5,6 +5,11 @@
 # Schiem
 # v 0.1
 #####################################################################
+import math
+import random
+import sys
+from animal import Animal
+from plant import Plant
 
 def type_constants():
     return [Plant, Animal]
@@ -26,25 +31,28 @@ class World:
     Creates a random animal, with values that can be varied (see Animal
     Class) from 1-10, or 1-100 in the case of death age.
     '''
-    def create_random_animal(self):
+    def create_random_animals(self, num):
         speed = random.randint(1, 10)
         size = random.randint(1, 10)
         sight = random.randint(1, 10)
         death_age = random.randint(1, 100)
-        ID = generate_new_id(Animal)
+        ID = self.generate_new_id(Animal)
         
         #future me, sorry about what I'm about to do
         diets = type_constants() 
-        for i in range(random.randint(1, 2)):
+        diet_type = []
+        for i in range(random.randint(1, len(diets))):
            diet_type.append(diets.pop(random.randrange(len(diets))))
         
         cannibal = random.choice([True, False])
-        x = random.randint(1, self.width - 1)
-        y = random.randint(1, self.height - 1)
+        
+        for i in range(num):
+            x = random.randint(1, self.width - 1)
+            y = random.randint(1, self.height - 1)
+        
+            self.objects.append(Animal(speed, size, sight, death_age, ID, diet_type, cannibal, x, y, self, []))
 
-        objects.append(Animal(speed, size, death_age, ID, diet_type, cannibal, x, y, self, []))
-
-    def get_id(self, obj):
+    def get_animal_id(self, obj):
         for animal in objects:
             if(type(animal) is Animal):
                 if(same_species(obj, animal)):
@@ -86,7 +94,7 @@ class World:
     '''
     def generate_new_id(self, obj_type):
         ID = 1
-        for obj in objects:
+        for obj in self.objects:
             if (type(obj) is obj_type):
                 if obj.ID == ID:
                     ID = ID + 1
@@ -102,31 +110,74 @@ class World:
     Displays the world.  I'm not sure if I'm even going to implement this.
     '''
     def display_world(self):
-        pass
-    
+        for i in range(self.height):
+            line = ""
+            for j in range(self.width):
+                line += "."
+            print(line)
+        for obj in self.objects:
+            self.print_there(obj.x, obj.y, str(obj.ID))
+
+    '''
+    Print to a specific place on the terminal.
+    '''
+    def print_there(self, x, y, text):
+         sys.stdout.write("\x1b7\x1b[%d;%df%s\x1b8" % (x, y, text))
+         sys.stdout.flush()
+
     '''
     Accessor for the world's objects.
     '''
     def get_objects(self):
         return self.objects
 
+    def objects_in_range(self, x, y, radius):
+        in_range = []
+        for obj in self.get_objects():
+            if(self.get_distance(obj.x, obj.y, x, y) < radius):
+                in_range.append(obj)
+        return in_range
+    
     '''
     Steps through all of the objects in the world and has them act.
     '''
     def run_objects(self):
-        for obj in objects:
-            obj.act()
+        for obj in self.objects:
             if(obj.is_dead):
-                objects.remove(obj)
-    
+                self.objects.remove(obj)
+            else:
+                obj.act()
+   
     '''
-    
+    The main 'run' function.
+    '''
+    def run_world(self):
+        self.display_world()
+        self.run_objects()
+   
+    '''
+    Returns the actual distance, not just for relative comparisons.
+    '''
+    def get_distance(self, x1, y1, x2, y2):
+        x_dist = x1-x2
+        y_dist = y1-y2
+        dist = math.sqrt(x_dist**2 + y_dist**2)
+        return dist
+
+    '''
     Returns the distance without the expensive sqrt operation.  This is
     because we're only ever comparing distances, we don't care how far
     it actually is.
     '''
-    def get_distance(x1, y1, x2, y2):
+    def get_cheap_distance(self, x1, y1, x2, y2):
         x_dist = x1-x2
         y_dist = y1-y2
         total_dist = x_dist**2 + y_dist**2
+        return total_dist
 
+    def dump_all_stats(self):
+        print("Num objects: " + str(len(self.get_objects())))
+        print("World: " + str(self))
+        for obj in self.objects:
+            obj.dump_stats()
+            print("")
