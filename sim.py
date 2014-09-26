@@ -1,4 +1,5 @@
 import time
+import curses
 
 import world
 import animal
@@ -17,10 +18,13 @@ def handle_framerate(old_time):
         return 10
 
 if __name__ == "__main__":
-    World = world.World(20, 20)
+    stdscrn = curses.initscr()
+    curses.noecho()
+    World = world.World(20, 20, stdscrn)
     for i in range(5):
         World.create_random_animals(6)
     while(len(World.get_objects()) != 0):
         time1 = time.time()
         World.run_world(ms_per_frame())
         time.sleep(handle_framerate(time1)/1000)
+    World.die()

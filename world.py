@@ -8,9 +8,9 @@
 import math
 import random
 import sys
+import curses
 from animal import Animal
 from plant import Plant
-from helper import type_constants
 
 class World:
     '''
@@ -20,9 +20,10 @@ class World:
     Parameter: width
         The width of the world.
         '''
-    def __init__(self, height, width):
+    def __init__(self, height, width, screen):
         self.height = height
         self.width = width
+        self.screen = screen
         self.objects = []
 
     '''
@@ -120,17 +121,24 @@ class World:
             line = ""
             for j in range(self.width):
                 line += "."
-            print(line)
+            self.print_line(line, i)
         for obj in self.objects:
-            self.print_there(obj.x, obj.y, str(obj.ID))
+            self.print_there(obj.y, obj.x, str(obj.ID))
+
+    def print_line(self, line, height):
+        try:
+            self.screen.addstr(height, 0, line)
+        except curses.error:
+            pass
 
     '''
     Print to a specific place on the terminal.
     '''
     def print_there(self, x, y, text):
-         sys.stdout.write("\x1b7\x1b[%d;%df%s\x1b8" % (x, y, text))
-         sys.stdout.flush()
-
+        try:
+            self.screen.addstr(x, y, text)
+        except curses.error:
+            pass
     '''
     Accessor for the world's objects.
     '''
@@ -153,14 +161,23 @@ class World:
                 self.objects.remove(obj)
             else:
                 obj.act(delta_ms)
-   
+    
+    '''
+    Kill the world.
+    '''
+    def die(self):
+        curses.echo()
+        curses.endwin()
+
     '''
     The main 'run' function.
     '''
     def run_world(self, delta_ms):
-        self.display_world()
         self.run_objects(delta_ms)
-   
+        self.display_world()
+        self.screen.refresh()
+
+    
     '''
     Returns the actual distance, not just for relative comparisons.
     '''

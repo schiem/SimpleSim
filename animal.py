@@ -152,7 +152,6 @@ class Animal:
     '''
     def flee(self, x, y):
         #flee from a location
-        print("RUNNING")
         self.x = self.x + (self.x > x) - (self.x < x)
         self.y = self.y + (self.y > y) - (self.y < y)
 
@@ -163,10 +162,8 @@ class Animal:
     def eat(self, obj):
         #eat an object
         
-        print("EATING!")
         '''
         self.dump_stats()
-        print("")
         obj.dump_stats()
         '''
         obj.die()
@@ -189,7 +186,6 @@ class Animal:
     both parents, as well as mutations.
     '''
     def breed(self, animal):
-        print("BREEDING")
         #breed with an animal
         #it takes two to tango, but both shouldn't produce offspring
         self.just_bred()
