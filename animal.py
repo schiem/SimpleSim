@@ -89,15 +89,17 @@ class Animal:
     '''
     def act(self, delta_ms):
         #start by setting the state
+        self.state = States.WANDER
+        self.target = None
         self.timer += delta_ms
         while(self.timer > ((1/self.genes['speed']) * 1000)):
             self.timer -= delta_ms
             for obj in self.world.objects_in_range(self.x, self.y, self.genes['sight']):
-                if(obj.can_eat(self)):
+                if(type(obj) is Animal and obj.can_eat(self)):
                     self.state = States.FLEE
                     #if we don't have another target, this should be our target
                     self.target = self.closer_target(obj)
-                elif(self.can_eat(obj) and self.energy < (0.9 * self.max_energy)):
+                elif(self.can_eat(obj) and self.energy < (0.7 * self.max_energy)):
                     self.state = States.EAT
                     self.target = self.closer_target(obj)
                 elif(self.can_breed(obj) and self.ready_to_breed() and obj.ready_to_breed()):
@@ -125,7 +127,7 @@ class Animal:
         self.age += 1
         if(self.refractory > 0):
             self.refractory -= 1
-        if(self.energy <= 0):
+        if(self.energy <= 0 or random.randrange(self.genes['death_age'] - self.age) == 0):
             self.die()
     
     
@@ -152,8 +154,16 @@ class Animal:
     '''
     def flee(self, x, y):
         #flee from a location
-        self.x = self.x + (self.x > x) - (self.x < x)
-        self.y = self.y + (self.y > y) - (self.y < y)
+        x = self.x + (self.x > x) - (self.x < x)
+        y = self.y + (self.y > y) - (self.y < y)
+        if self.world.validate_coords(x, y):
+            self.x = x
+            self.y = y
+        elif self.world.validate_coords(self.x, y):
+            self.y = y
+        elif self.world.validate_coords(x, self.y):
+            self.x = x
+
 
     '''
     If we can eat the object, then do it.  Note, this object doesn't
@@ -175,8 +185,15 @@ class Animal:
     '''
     def move_towards(self, x, y):
         #weird boolean logic
-        self.x = self.x - (self.x > x) + (self.x < x)
-        self.y = self.y - (self.y > y) + (self.y < y)
+        x = self.x - (self.x > x) + (self.x < x)
+        y =self.y - (self.y > y) + (self.y < y)
+        if self.world.validate_coords(x, y):
+            self.x = x
+            self.y = y
+        elif self.world.validate_coords(self.x, y):
+            self.y = y
+        elif self.world.validate_coords(x, self.y):
+            self.x = x
 
     '''
     Creates a new animal, but, as below, it takes two to tango.
@@ -199,7 +216,7 @@ class Animal:
         offspring_y = self.y + random.randint(-1, 1)
         
         #check to make sure the offspring isn't off the map
-        if not self.validate_move(offspring_x, offspring_y):
+        if not self.world.validate_coords(offspring_x, offspring_y):
             offspring_x = self.x
             offspring_y = self.y
         
@@ -214,8 +231,8 @@ class Animal:
             offspring_y,\
             self.world,
             [self, animal])
-        offspring.mutate_organism()
-        if(self.world.get_animal_id(offspring) is None):
+        self.world.mutate_organism(offspring)
+        if(self.world.get_id(offspring) is None):
             offspring.ID = self.world.generate_new_id(Animal)
         self.world.add_object(offspring)
 
@@ -229,40 +246,15 @@ class Animal:
         return genes
 
     '''
-    Causes slight changes to the organisms genes.  All of the changeable genes are held
-    in self.genes, and this is iterated through and altered minorly.  All are ints, with
-    the current lone exception of diet_type, which is a list of types.
-    '''
-    def mutate_organism(self):
-        for key in self.genes:
-            if(key is not "diet_type"): 
-                self.genes[key] = self.mutate_gene(self.genes[key])
-            else:
-                diets = [Plant, Animal] 
-                diets = list(set(diets) - set(self.genes[key]))
-                if(len(diets) != 0):
-                    #just in case I ever add more diets...
-                    self.genes[key].append(random.randrange(len(diets)))
-
-    '''
-    Changes a specific gene. Assumes that the gene is an int.
-    '''
-    def mutate_gene(self, gene):
-        a = gene
-        if(random.randrange(10) == 0):
-            a = a + random.randint(-1, 1)
-        return a
-
-    '''
     Sets the refractory, so that if we just bred, we don't do it again.
     Also takes energy.
     '''
     def just_bred(self):
         #let's not breed again for a while
-        self.refractory = 10
+        self.refractory = 5 
 
         #and breeding takes quite a bit of energy...
-        self.energy = self.energy - self.max_energy/2
+        self.energy = self.energy - self.max_energy/4
 
     '''
     Checks if the animal just bred, and if it has the energy to breed again.
@@ -283,7 +275,7 @@ class Animal:
     cycles (it's costly!).
     '''
     def move(self, x, y):
-        if(self.validate_move(x, y)):
+        if(self.world.validate_coords(x, y)):
             self.x = x
             self.y = y
             #it takes one metabolism tick to move
@@ -309,14 +301,20 @@ class Animal:
     def can_eat(self, obj):
         #checks if a particular object can be eaten by this animal
 
+        if(type(obj) is Plant and type(obj) in self.genes['diet_type']):
+            return True
+        elif(type(obj) not in self.genes['diet_type']):
+            return False
+
         #is it the same type as us?  If so, is it okay to eat it?
         cannibalize = self.ID != obj.ID or self.genes['cannibal'] == True
 
         #Do we eat this type of object?
         dietary_restriction = type(obj) in self.genes['diet_type']
         
-        #is it too big for us to eat?
-        size_restriction = self.genes['size'] >= obj.genes['size']
+        #is it too big for us to eat? But we only care if it's an animal
+        #size_restriction = self.genes['size'] >= obj.genes['size']
+        size_restriction = True
 
         #let's not eat our children or potential mates, but only if we're in the mating mood
         is_child = self in obj.parents
@@ -331,11 +329,6 @@ class Animal:
     def correct_energy(self):
         if(self.energy > self.max_energy):
             self.energy = self.max_energy
-    '''
-    Returns whether or not a given set of coordinates is within the world.
-    '''
-    def validate_move(self, x, y):
-        return (x <= self.world.width and x>=0) and (y <= self.world.height and y>=0)
 
     def dump_stats(self):
         for key in self.genes:

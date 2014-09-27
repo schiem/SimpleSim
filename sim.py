@@ -17,12 +17,24 @@ def handle_framerate(old_time):
     else:
         return 10
 
-if __name__ == "__main__":
+def init_curses():
     stdscrn = curses.initscr()
+    curses.start_color()
     curses.noecho()
-    World = world.World(20, 20, stdscrn)
-    for i in range(5):
-        World.create_random_animals(6)
+    curses.curs_set(0)
+    curses.init_pair(1, curses.COLOR_GREEN, curses.COLOR_BLACK)
+    curses.init_pair(2, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
+    curses.init_pair(3, curses.COLOR_BLUE, curses.COLOR_BLACK)
+    curses.init_pair(4, curses.COLOR_RED, curses.COLOR_BLACK)
+    return stdscrn
+
+if __name__ == "__main__":
+    
+    stdscrn = init_curses()
+    World = world.World(30, 30, stdscrn)
+    for i in range(15):
+        World.create_random_animals(5)
+        World.create_random_plants(1)
     while(len(World.get_objects()) != 0):
         time1 = time.time()
         World.run_world(ms_per_frame())

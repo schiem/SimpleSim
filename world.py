@@ -51,9 +51,20 @@ class World:
         
             self.objects.append(Animal(speed, size, sight, death_age, ID, diet_type, cannibal, x, y, self, []))
 
-    def get_animal_id(self, obj):
+    def create_random_plants(self, num):
+        death_age = random.randint(1, 100)
+        proliferation = random.randint(5, 10)
+        space_req = random.randint(2, 7)
+        energy_supplied = random.randint(1, 10)
+        ID = self.generate_new_id(Plant)
+        for i in range(num):
+            x = random.randint(1, self.width - 1)
+            y = random.randint(1, self.height - 1)
+            self.objects.append(Plant(death_age, proliferation, space_req, energy_supplied, x, y, ID, self))
+
+    def get_id(self, obj):
         for animal in self.objects:
-            if(type(animal) is Animal):
+            if(type(animal) is type(obj) and animal is not obj):
                 if(self.same_species(obj, animal)):
                     return animal.ID
         return None
@@ -67,10 +78,10 @@ class World:
     Parameter: animal2
         The second animal to compare.
     '''
-    def same_species(self, animal1, animal2):
+    def same_species(self, obj1, obj2):
         is_same = True
-        for key in animal1.genes:
-            is_same = is_same and self.compare_stat(animal1.genes[key], animal2.genes[key])
+        for key in obj1.genes:
+            is_same = is_same and self.compare_stat(obj1.genes[key], obj2.genes[key])
         return is_same
 
     '''
@@ -117,13 +128,31 @@ class World:
     Displays the world.  I'm not sure if I'm even going to implement this.
     '''
     def display_world(self):
+        #make sure the animals are always on top
+        animals = []
+        plants = []
+        for obj in self.objects:
+            if(type(obj) is Plant):
+                plants.append(obj)
+            else:
+                animals.append(obj)
+        
         for i in range(self.height):
             line = ""
             for j in range(self.width):
                 line += "."
             self.print_line(line, i)
-        for obj in self.objects:
-            self.print_there(obj.y, obj.x, str(obj.ID))
+        for obj in plants:
+            color = curses.color_pair(1)
+            self.print_there(obj.y, obj.x, str(obj.ID), color)
+        for obj in animals:
+            if(Plant in obj.genes['diet_type'] and Animal in obj.genes['diet_type']):
+                color = curses.color_pair(2)
+            elif(Plant in obj.genes['diet_type']):
+                color = curses.color_pair(3)
+            else:
+                color = curses.color_pair(4)
+            self.print_there(obj.y, obj.x, str(obj.ID), color)
 
     def print_line(self, line, height):
         try:
@@ -134,9 +163,9 @@ class World:
     '''
     Print to a specific place on the terminal.
     '''
-    def print_there(self, x, y, text):
+    def print_there(self, x, y, text, color):
         try:
-            self.screen.addstr(x, y, text)
+            self.screen.addstr(x, y, text, color)
         except curses.error:
             pass
     '''
@@ -204,3 +233,46 @@ class World:
         for obj in self.objects:
             obj.dump_stats()
             print("")
+
+
+    '''
+    Causes slight changes to the organisms genes.  All of the changeable genes are held
+    in self.genes, and this is iterated through and altered minorly.  All are ints, with
+    the current lone exception of diet_type, which is a list of types.
+    '''
+    def mutate_organism(self, organism):
+        for key in organism.genes:
+            if(key is not "diet_type"): 
+                organism.genes[key] = self.mutate_gene(organism.genes[key])
+            else:
+                diets = [Plant, Animal] 
+                diets = list(set(diets) - set(organism.genes[key]))
+                if(len(diets) != 0):
+                    #just in case I ever add more diets...
+                    organism.genes[key].append(random.randrange(len(diets)))
+
+    '''
+    Changes a specific gene. Assumes that the gene is an int.
+    '''
+    def mutate_gene(self, gene):
+        a = gene
+        if(random.randrange(10) == 0):
+            a = a + random.randint(-2, 2)
+        if(a < 1):
+            a = 1
+        return a
+
+    def empty_space(self,x, y):
+        for obj in self.objects:
+            if obj.x == x and obj.y == y:
+                return False
+        if not self.validate_coords(x, y):
+            return False
+        return True
+
+    '''
+    Returns whether or not a given set of coordinates is within the world.
+    '''
+    def validate_coords(self, x, y):
+        return (x < self.width and x>=0) and (y < self.height and y>=0)
+
