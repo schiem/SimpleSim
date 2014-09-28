@@ -27,13 +27,15 @@ class World:
         self.objects = []
 
     '''
-    Creates a random animal, with values that can be varied (see Animal
+    Creates random animals, with values that can be varied (see Animal
     Class) from 1-10, or 1-100 in the case of death age.
+    Parameter: num
+        The number of identical animals to create.
     '''
     def create_random_animals(self, num):
         speed = random.randint(1, 10)
         size = random.randint(1, 10)
-        sight = random.randint(1, 10)
+        sight = random.randint(1, 20)
         death_age = random.randint(1, 100)
         ID = self.generate_new_id(Animal)
         
@@ -51,22 +53,33 @@ class World:
         
             self.objects.append(Animal(speed, size, sight, death_age, ID, diet_type, cannibal, x, y, self, []))
 
+    '''
+    Creates random plants, with values that can be varied.  Tweaking these
+    values greatly influences the outcome of the simulation.
+    Parameter: num
+        The number of identical plants to create.
+    '''
     def create_random_plants(self, num):
         death_age = random.randint(1, 100)
         proliferation = random.randint(5, 10)
         space_req = random.randint(2, 7)
-        energy_supplied = random.randint(1, 10)
+        energy_supplied = random.randint(5, 20)
         ID = self.generate_new_id(Plant)
         for i in range(num):
             x = random.randint(1, self.width - 1)
             y = random.randint(1, self.height - 1)
             self.objects.append(Plant(death_age, proliferation, space_req, energy_supplied, x, y, ID, self))
 
+    '''
+    Gets compares the attributes of the object against attributes
+    of the other objects in the world (of the same type).
+    None is returned if no matches are found.
+    '''
     def get_id(self, obj):
-        for animal in self.objects:
-            if(type(animal) is type(obj) and animal is not obj):
-                if(self.same_species(obj, animal)):
-                    return animal.ID
+        for world_obj in self.objects:
+            if(type(world_obj) is type(obj) and world_obj is not obj):
+                if(self.same_species(obj, world_obj)):
+                    return world_obj.ID
         return None
     
     '''
@@ -125,7 +138,8 @@ class World:
         self.objects.append(obj)
 
     '''
-    Displays the world.  I'm not sure if I'm even going to implement this.
+    Displays the world using the curses module.  Will cause significant
+    terminal funkiness if the program is not terminated properly. 
     '''
     def display_world(self):
         #make sure the animals are always on top
@@ -138,22 +152,32 @@ class World:
                 animals.append(obj)
         
         for i in range(self.height):
+            #draw the background
             line = ""
             for j in range(self.width):
                 line += "."
             self.print_line(line, i)
+
+        #draw the plants green
         for obj in plants:
             color = curses.color_pair(1)
             self.print_there(obj.y, obj.x, str(obj.ID), color)
+        #draw the animals
         for obj in animals:
+            #omnivores are magenta
             if(Plant in obj.genes['diet_type'] and Animal in obj.genes['diet_type']):
                 color = curses.color_pair(2)
+            #herbivores are blue
             elif(Plant in obj.genes['diet_type']):
                 color = curses.color_pair(3)
             else:
+                #carnivores are red
                 color = curses.color_pair(4)
             self.print_there(obj.y, obj.x, str(obj.ID), color)
 
+    '''
+    Print a line at a given height.
+    '''
     def print_line(self, line, height):
         try:
             self.screen.addstr(height, 0, line)
@@ -174,6 +198,10 @@ class World:
     def get_objects(self):
         return self.objects
 
+    '''
+    Returns a list of objects which are within
+    the given radius relative to the x and y passed in.
+    '''
     def objects_in_range(self, x, y, radius):
         in_range = []
         for obj in self.get_objects():
@@ -227,6 +255,10 @@ class World:
         total_dist = x_dist**2 + y_dist**2
         return total_dist
 
+    '''
+    Debugging function which prints the stats of the
+    objects of the world.
+    '''
     def dump_all_stats(self):
         print("Num objects: " + str(len(self.get_objects())))
         print("World: " + str(self))
@@ -257,11 +289,14 @@ class World:
     def mutate_gene(self, gene):
         a = gene
         if(random.randrange(10) == 0):
-            a = a + random.randint(-2, 2)
+            a = a + random.randint(-1, 1)
         if(a < 1):
             a = 1
         return a
 
+    '''
+    Checks to see if a given space is empty.
+    '''
     def empty_space(self,x, y):
         for obj in self.objects:
             if obj.x == x and obj.y == y:

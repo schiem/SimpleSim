@@ -54,7 +54,7 @@ class Animal:
         "sight" : sight, \
         "death_age" : death_age,\
         "cannibal" : cannibal,\
-        "diet_type" : diet_type}
+        "diet_type" : [Plant]}
         
         self.ID = ID
         self.x = x
@@ -72,7 +72,7 @@ class Animal:
         #for now just size, but later more?
         self.energy_supplied = size
         self.age = 0
-        self.metabolism = int(speed/size)
+        self.metabolism = int((speed + size)/10)
         if(self.metabolism == 0):
             self.metabolism = 1
         self.gender = random.randint(0,1)
@@ -99,11 +99,11 @@ class Animal:
                     self.state = States.FLEE
                     #if we don't have another target, this should be our target
                     self.target = self.closer_target(obj)
-                elif(self.can_eat(obj) and self.energy < (0.7 * self.max_energy)):
-                    self.state = States.EAT
-                    self.target = self.closer_target(obj)
                 elif(self.can_breed(obj) and self.ready_to_breed() and obj.ready_to_breed()):
                     self.state = States.BREED
+                    self.target = self.closer_target(obj)
+                elif(self.can_eat(obj) and self.energy < (self.max_energy * .9)): 
+                    self.state = States.EAT
                     self.target = self.closer_target(obj)
                 else:
                     self.state = States.WANDER
@@ -127,7 +127,7 @@ class Animal:
         self.age += 1
         if(self.refractory > 0):
             self.refractory -= 1
-        if(self.energy <= 0 or random.randrange(self.genes['death_age'] - self.age) == 0):
+        if(self.energy <= 0 or random.randint(0, self.genes['death_age'] - self.age) == 0):
             self.die()
     
     
@@ -251,16 +251,16 @@ class Animal:
     '''
     def just_bred(self):
         #let's not breed again for a while
-        self.refractory = 5 
-
+        self.refractory = 3 
         #and breeding takes quite a bit of energy...
-        self.energy = self.energy - self.max_energy/4
+        self.energy = self.energy - self.max_energy/5
+
 
     '''
     Checks if the animal just bred, and if it has the energy to breed again.
     '''
     def ready_to_breed(self):
-        return self.refractory == 0 and self.energy > self.max_energy/2
+        return self.refractory == 0  and self.energy > self.max_energy/5
 
     '''
     Will search for a specific object in sight. May be obsolete.

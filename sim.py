@@ -6,7 +6,7 @@ import animal
 import plant
 
 def ms_per_frame():
-    return 70
+    return 70 
 
 def handle_framerate(old_time):
     ms = ms_per_frame()
@@ -31,10 +31,12 @@ def init_curses():
 if __name__ == "__main__":
     
     stdscrn = init_curses()
-    World = world.World(30, 30, stdscrn)
-    for i in range(15):
-        World.create_random_animals(5)
-        World.create_random_plants(1)
+    World = world.World(20, 20, stdscrn)
+    for i in range(1):
+        World.create_random_animals(50)
+    for i in range(1):
+        World.create_random_plants(50)
+    
     while(len(World.get_objects()) != 0):
         time1 = time.time()
         World.run_world(ms_per_frame())

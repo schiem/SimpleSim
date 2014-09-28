@@ -26,7 +26,7 @@ class Plant:
             if(self.will_proliferate()):
                 self.proliferate()
         self.age += 1
-        if(random.randrange(self.genes['death_age'] - self.age) == 0):
+        if(random.randint(0, self.genes['death_age'] - self.age) == 0):
             self.die()
 
     def proliferate(self):
