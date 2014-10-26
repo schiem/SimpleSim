@@ -54,7 +54,7 @@ class Animal:
         "sight" : sight, \
         "death_age" : death_age,\
         "cannibal" : cannibal,\
-        "diet_type" : [Plant]}
+        "diet_type" : diet_type}
         
         self.ID = ID
         self.x = x
@@ -95,19 +95,22 @@ class Animal:
         while(self.timer > ((1/self.genes['speed']) * 1000)):
             self.timer -= delta_ms
             for obj in self.world.objects_in_range(self.x, self.y, self.genes['sight']):
+                new_state = self.state
                 if(type(obj) is Animal and obj.can_eat(self)):
-                    self.state = States.FLEE
+                    new_state = States.FLEE
                     #if we don't have another target, this should be our target
-                    self.target = self.closer_target(obj)
                 elif(self.can_breed(obj) and self.ready_to_breed() and obj.ready_to_breed()):
-                    self.state = States.BREED
-                    self.target = self.closer_target(obj)
+                    new_state = States.BREED
                 elif(self.can_eat(obj) and self.energy < (self.max_energy * .9)): 
-                    self.state = States.EAT
-                    self.target = self.closer_target(obj)
+                    new_state = States.EAT
                 else:
-                    self.state = States.WANDER
-
+                    new_state = States.WANDER
+                if new_state < self.state:
+                    self.state = new_state
+                    self.target = obj
+            self.world.log("state: %i\n" %self.state)
+            self.world.log(self.dump_stats())
+            self.world.log("\n")
             if(self.state == States.FLEE):
                 self.flee(self.target.x, self.target.y)
             elif(self.state == States.EAT):
@@ -330,10 +333,16 @@ class Animal:
         if(self.energy > self.max_energy):
             self.energy = self.max_energy
 
+    
     def dump_stats(self):
+        a = ""
         for key in self.genes:
-            print(key + ": " + str(self.genes[key]))
-        print("Energy: " + str(self.energy))
-        print("Dead: " + str(self.is_dead))
-        print("Num Objects: " + str(len(self.world.objects)))
-        print("World: " + str(self.world))
+            a += key + ": " + str(self.genes[key]) + "\n"
+        a += "ID: " + str(self.ID) + "\n"
+        a += "Energy: " + str(self.energy) + "\n"
+        a += "Dead: " + str(self.is_dead) + "\n"
+        a += "Num Objects: " + str(len(self.world.objects)) + "\n"
+        a += "World: " + str(self.world)  + "\n"
+        return a
+
+    

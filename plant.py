@@ -12,10 +12,10 @@ class Plant:
         self.energy_supplied = energy_supplied
         self.age = 0
         self.timer = 0
-        #plants can all move the same speed.
         self.x = x
         self.y = y
         
+        #plants can all move the same speed.
         self.speed = 5
         self.is_dead = False
 

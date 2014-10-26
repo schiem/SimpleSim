@@ -34,8 +34,8 @@ class World:
     '''
     def create_random_animals(self, num):
         speed = random.randint(1, 10)
-        size = random.randint(1, 10)
-        sight = random.randint(1, 20)
+        size = random.randint(5, 10)
+        sight = random.randint(5, 20)
         death_age = random.randint(1, 100)
         ID = self.generate_new_id(Animal)
         
@@ -63,7 +63,7 @@ class World:
         death_age = random.randint(1, 100)
         proliferation = random.randint(5, 10)
         space_req = random.randint(2, 7)
-        energy_supplied = random.randint(5, 20)
+        energy_supplied = random.randint(10, 20)
         ID = self.generate_new_id(Plant)
         for i in range(num):
             x = random.randint(1, self.width - 1)
@@ -310,4 +310,9 @@ class World:
     '''
     def validate_coords(self, x, y):
         return (x < self.width and x>=0) and (y < self.height and y>=0)
+
+    def log(self, message):
+        f = open("log.out", "a")
+        f.write(message)
+        f.close()
 
