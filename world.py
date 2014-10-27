@@ -25,6 +25,7 @@ class World:
         self.width = width
         self.screen = screen
         self.objects = []
+        self.log("Creating new world...\n")
 
     '''
     Creates random animals, with values that can be varied (see Animal
@@ -36,7 +37,7 @@ class World:
         speed = random.randint(1, 10)
         size = random.randint(5, 10)
         sight = random.randint(5, 20)
-        death_age = random.randint(1, 100)
+        death_age = random.randint(20, 100)
         ID = self.generate_new_id(Animal)
         
         #future me, sorry about what I'm about to do
@@ -46,12 +47,10 @@ class World:
            diet_type.append(diets.pop(random.randrange(len(diets))))
         
         cannibal = random.choice([True, False])
-        _x = random.randint(1, self.width - 1)
-        _y = random.randint(1, self.height - 1)
         
         for i in range(num):
-            x = random.randint(_x - 2, _x + 2)
-            y = random.randint(_y - 2, _y + 2)
+            x = random.randint(1, self.width - 1)
+            y = random.randint(1, self.height - 1)
             self.objects.append(Animal(speed, size, sight, death_age, ID, diet_type, cannibal, x, y, self, []))
 
     '''
@@ -232,6 +231,7 @@ class World:
     '''
     def run_world(self, delta_ms):
         self.run_objects(delta_ms)
+        self.log_data()
         self.display_world()
         self.screen.refresh()
 
@@ -282,7 +282,7 @@ class World:
     '''
     def mutate_gene(self, gene, gene_name):
         a = gene
-        if(random.randrange(10) == 0):
+        if(random.randrange(50) == 0):
             if(gene_name is not "diet_type"): 
                 a = a + random.randint(-1, 1)
                 if(a < 1):
@@ -313,8 +313,23 @@ class World:
     def validate_coords(self, x, y):
         return (x < self.width and x>=0) and (y < self.height and y>=0)
 
+    def get_num_plants(self):
+        a = 0
+        for obj in self.objects:
+            if type(obj) is Plant:
+                a += 1
+        return a
+
     def log(self, message):
         f = open("log.out", "a")
         f.write(message)
         f.close()
 
+    def log_data(self):
+        num_plants = self.get_num_plants()
+        num_animals = len(self.objects) - self.get_num_plants()
+        a = ""
+        a += "O: %i" %len(self.objects) + "\n"
+        a += "P: %i" %num_plants + "\n"
+        a += "A: %i" %num_animals + "\n"
+        self.log(a)

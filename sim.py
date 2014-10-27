@@ -31,9 +31,9 @@ def init_curses():
 if __name__ == "__main__":
     
     stdscrn = init_curses()
-    World = world.World(40, 100, stdscrn)
-    for i in range(10):
-        World.create_random_animals(6)
+    World = world.World(20, 20, stdscrn)
+    for i in range(1):
+        World.create_random_animals(20)
     for i in range(4):
         World.create_random_plants(10)
     

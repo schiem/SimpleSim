@@ -108,9 +108,6 @@ class Animal:
                 if new_state < self.state:
                     self.state = new_state
                     self.target = obj
-            self.world.log("state: %i\n" %self.state)
-            self.world.log(self.dump_stats())
-            self.world.log("\n")
             if(self.state == States.FLEE):
                 self.flee(self.target.x, self.target.y)
             elif(self.state == States.EAT):
