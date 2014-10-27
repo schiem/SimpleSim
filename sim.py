@@ -31,10 +31,10 @@ def init_curses():
 if __name__ == "__main__":
     
     stdscrn = init_curses()
-    World = world.World(50, 50, stdscrn)
+    World = world.World(40, 100, stdscrn)
     for i in range(10):
-        World.create_random_animals(10)
-    for i in range(10):
+        World.create_random_animals(6)
+    for i in range(4):
         World.create_random_plants(10)
     
     while(len(World.get_objects()) != 0):

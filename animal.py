@@ -96,7 +96,7 @@ class Animal:
             self.timer -= delta_ms
             for obj in self.world.objects_in_range(self.x, self.y, self.genes['sight']):
                 new_state = self.state
-                if(type(obj) is Animal and obj.can_eat(self)):
+                if(type(obj) is Animal and obj.can_eat(self) and self.world.get_distance(self.x, self.y, obj.x, obj.y) < self.genes['sight']/5):
                     new_state = States.FLEE
                     #if we don't have another target, this should be our target
                 elif(self.can_breed(obj) and self.ready_to_breed() and obj.ready_to_breed()):
@@ -234,6 +234,7 @@ class Animal:
             offspring_y,\
             self.world,
             [self, animal])
+        offspring.energy = 0.4 * offspring.max_energy
         self.world.mutate_organism(offspring)
         if(self.world.get_id(offspring) is None):
             offspring.ID = self.world.generate_new_id(Animal)
@@ -254,7 +255,7 @@ class Animal:
     '''
     def just_bred(self):
         #let's not breed again for a while
-        self.refractory = 3 
+        self.refractory = 5 
         #and breeding takes quite a bit of energy...
         self.energy = self.energy - self.max_energy/5
 
@@ -316,8 +317,7 @@ class Animal:
         dietary_restriction = type(obj) in self.genes['diet_type']
         
         #is it too big for us to eat? But we only care if it's an animal
-        #size_restriction = self.genes['size'] >= obj.genes['size']
-        size_restriction = True
+        size_restriction = (self.genes['size']/len(self.genes['diet_type'])) >= obj.genes['size']
 
         #let's not eat our children or potential mates, but only if we're in the mating mood
         is_child = self in obj.parents

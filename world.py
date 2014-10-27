@@ -46,11 +46,12 @@ class World:
            diet_type.append(diets.pop(random.randrange(len(diets))))
         
         cannibal = random.choice([True, False])
+        _x = random.randint(1, self.width - 1)
+        _y = random.randint(1, self.height - 1)
         
         for i in range(num):
-            x = random.randint(1, self.width - 1)
-            y = random.randint(1, self.height - 1)
-        
+            x = random.randint(_x - 2, _x + 2)
+            y = random.randint(_y - 2, _y + 2)
             self.objects.append(Animal(speed, size, sight, death_age, ID, diet_type, cannibal, x, y, self, []))
 
     '''
@@ -62,7 +63,7 @@ class World:
     def create_random_plants(self, num):
         death_age = random.randint(1, 100)
         proliferation = random.randint(5, 10)
-        space_req = random.randint(2, 7)
+        space_req = random.randint(2, 6)
         energy_supplied = random.randint(10, 20)
         ID = self.generate_new_id(Plant)
         for i in range(num):
@@ -274,24 +275,25 @@ class World:
     '''
     def mutate_organism(self, organism):
         for key in organism.genes:
-            if(key is not "diet_type"): 
-                organism.genes[key] = self.mutate_gene(organism.genes[key])
-            else:
-                diets = [Plant, Animal] 
-                diets = list(set(diets) - set(organism.genes[key]))
-                if(len(diets) != 0):
-                    #just in case I ever add more diets...
-                    organism.genes[key].append(random.randrange(len(diets)))
-
+            organism.genes[key] = self.mutate_gene(organism.genes[key], key)
+            
     '''
     Changes a specific gene. Assumes that the gene is an int.
     '''
-    def mutate_gene(self, gene):
+    def mutate_gene(self, gene, gene_name):
         a = gene
         if(random.randrange(10) == 0):
-            a = a + random.randint(-1, 1)
-        if(a < 1):
-            a = 1
+            if(gene_name is not "diet_type"): 
+                a = a + random.randint(-1, 1)
+                if(a < 1):
+                    a = 1
+            else:
+                diets = [Plant, Animal] 
+                diets = list(set(diets) - set(a))
+                if(len(diets) != 0):
+                    for i in range(random.randint(1, len(diets))):
+                        #just in case I ever add more diets...
+                        a.append(diets.pop(random.randrange(len(diets))))
         return a
 
     '''
